@@ -1,1 +1,100 @@
-file:///C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMachineLearning_JohnHopkingsUniversity/PML.html
+---
+title: "PracticalMachineLearning_Assignment"
+author: "Aldo Sedeno"
+date: "Sunday, February 22, 2015"
+output: html_document
+---
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+The goal of this analysis is to produce a predictive Model that is capable of predicting the vector "Class" of the presented Training dataset.
+
+In order to do that, the following X sections 
+
+1. Read the Data
+#Train&Test Datasets
+```{r echo=false}
+orig_data <- read.csv("C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMachineLearning_JohnHopkingsUniversity/pml-training.csv")
+real_data <- read.csv("C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMachineLearning_JohnHopkingsUniversity/pml-testing.csv")
+```
+
+
+2. Prepare the data
+```{r echo=false}
+coll_data <- orig_data[c(8:11,37:49,61:68,84:86,102,113:124,140,151:159,160)]
+```
+
+3. Create Training, Testing and Validation Partitions
+3.1 Create Training Dataset
+
+```{r echo=false}
+set.seed(107)
+train_data_vector <- createDataPartition(y = coll_data$classe, p=0.6, list=FALSE) #Generate Random Vector
+train_data <- coll_data[ train_data_vector,] # Train Partition
+test_plus_vali_data <- coll_data[ -train_data_vector,] 
+```
+
+3.2 Create Testing Dataset
+```{r echo=false}
+testing_plus_validation <- createDataPartition(y= test_plus_vali_data$classe, p=0.5, list=FALSE) #Outcome for training dataset
+test_data <- test_plus_vali_data[testing_plus_validation,] # Test partition
+```
+
+3.3 Create Validation Dataset
+```{r echo=false}
+vali_data <- test_plus_vali_data[-testing_plus_validation,] # Vali Partition
+```
+
+3.4 Obtain "True" Output vectors 
+#Obtaion Outputs for Training/Testing/Validation datasets
+```{r echo=false}
+training_outcome <- train_data$classe #Outcome for training dataset
+testing_outcome <- test_data$classe #Outcome for testing dataset
+validation_outcome <- vali_data$classe #Outcome for validation dataset
+```
+
+4. Construct Predictive Models
+
+4.1 Naive Model
+#Create a Naive Prediction Vector
+```{r echo=false}
+o <- rep(c("A","B","C","D","E"), 3923*c(0.2,0.2,0.2,0.2,0.2))
+p <- rep(c("A","B","C"))
+op <- rep(c(o,p))
+naive_outcome <- sample(op)
+```
+
+4.2 Classification Model
+#Creation of Model
+```{r echo=false}
+class_numb <- match("classe",names(train_data))
+predictors <- train_data[,-class_numb]
+#modelFit_rf <- train(predictors, training_outcome, method="rf")
+modelFit <- train(predictors, training_outcome, method="rf")
+```
+
+5. Model Evaluation
+```{r echo}
+#Performing a prediction with the model
+prediction_on_test <- predict(modelFit, newdata=test_data[,-class_numb])
+prediction_on_vali <- predict(modelFit, newdata=vali_data[,-class_numb])
+#Compare the predicted vs real values
+confusionMatrix(prediction_on_test, testing_outcome)
+confusionMatrix(prediction_on_vali, validation_outcome)
+confusionMatrix(naive_outcome, testing_outcome)
+```
+6. Apply Model on Real Data
+```{r echo=false}
+prediction_on_real <- predict(modelFit, newdata=real_data)
+prediction_on_real
+```
