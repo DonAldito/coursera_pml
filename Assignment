@@ -11,12 +11,6 @@ summary(cars)
 
 You can also embed plots, for example:
 
-```{r, echo=FALSE}
-plot(cars)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
 The goal of this analysis is to produce a predictive Model that is capable of predicting the vector "Class" of the presented Training dataset.
 
 In order to do that, the following X sections 
@@ -29,12 +23,14 @@ real_data <- read.csv("C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMach
 ```
 
 
-2. Prepare the data
+2. Prepare the data: This was perhaps the most important section since most of the variables were containing data that did not contribute on anything for the model construction.
+Thus, the variables containing NAs, NaNs and those unique variables were eliminated, which delivered a more compact dataset:
 ```{r echo=false}
 coll_data <- orig_data[c(8:11,37:49,61:68,84:86,102,113:124,140,151:159,160)]
 ```
 
 3. Create Training, Testing and Validation Partitions
+In order to train the  model and make sure we did not run into overfitting issues, it was decided to split the data into three datasets: Training -60%, Testing-20% and Validation- 20%.
 3.1 Create Training Dataset
 
 ```{r echo=false}
@@ -66,6 +62,7 @@ validation_outcome <- vali_data$classe #Outcome for validation dataset
 4. Construct Predictive Models
 
 4.1 Naive Model
+In order to know that the model is actually "predicting" all predictions were compared with a Naive Model (random guess) that delivered an accuracy of ca. 20%.
 #Create a Naive Prediction Vector
 ```{r echo=false}
 o <- rep(c("A","B","C","D","E"), 3923*c(0.2,0.2,0.2,0.2,0.2))
@@ -75,6 +72,8 @@ naive_outcome <- sample(op)
 ```
 
 4.2 Classification Model
+The classification Model that was used was Random Forest. Along with classification trees, it was able to deliver very accurate results( ca. 99%)
+This accuracy was tested on both Testing & Validation Dataset.
 #Creation of Model
 ```{r echo=false}
 class_numb <- match("classe",names(train_data))
@@ -84,6 +83,7 @@ modelFit <- train(predictors, training_outcome, method="rf")
 ```
 
 5. Model Evaluation
+Finally the model was evaluated by comparing its output with the real one. After obtaining a very good accuracy. This model was used to tested on the "Real Data".
 ```{r echo}
 #Performing a prediction with the model
 prediction_on_test <- predict(modelFit, newdata=test_data[,-class_numb])
@@ -94,6 +94,7 @@ confusionMatrix(prediction_on_vali, validation_outcome)
 confusionMatrix(naive_outcome, testing_outcome)
 ```
 6. Apply Model on Real Data
+The Model was tested on the real data, obtaining 100% accuracy:
 ```{r echo=false}
 prediction_on_real <- predict(modelFit, newdata=real_data)
 prediction_on_real
