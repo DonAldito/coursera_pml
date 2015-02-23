@@ -3,49 +3,154 @@ Aldo Sedeno
 
 Sunday, February 22, 2015
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see http://rmarkdown.rstudio.com.
-
-When you click the Knit button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-summary(cars)
-##      speed           dist       
-##  Min.   : 4.0   Min.   :  2.00  
-##  1st Qu.:12.0   1st Qu.: 26.00  
-##  Median :15.0   Median : 36.00  
-##  Mean   :15.4   Mean   : 42.98  
-##  3rd Qu.:19.0   3rd Qu.: 56.00  
-##  Max.   :25.0   Max.   :120.00
-You can also embed plots, for example:
-
-
-
-Note that the echo = FALSE parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
 The goal of this analysis is to produce a predictive Model that is capable of predicting the vector “Class” of the presented Training dataset.
 
 In order to do that, the following X sections
 
-Read the Data #Train&Test Datasets #orig_data <- read.csv(“C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMachineLearning_JohnHopkingsUniversity/pml-training.csv”) #real_data <- read.csv(“C:/Users/ALDO/Documents/DataMining/Coursera/PracticalMachineLearning_JohnHopkingsUniversity/pml-testing.csv”)
-Cleaining DAta: Vector variables with NAs, NaNs, Timestamps were eliminated
+Read the Data #Train&Test Datasets
+
+Prepare the data
+
 coll_data <- orig_data[c(8:11,37:49,61:68,84:86,102,113:124,140,151:159,160)]
-coll_data <- orig_data[c(8,84:86,160)]
-coll_data <- orig_data[c(84:86,160)]
-Prepare the data coll_data <- orig_data[c(8:11,37:49,61:68,84:86,102,113:124,140,151:159,160)]
-
 Create Training, Testing and Validation Partitions 3.1 Create Training Dataset
+library(caret)
+## Loading required package: lattice
+## Loading required package: ggplot2
+set.seed(107)
+train_data_vector <- createDataPartition(y = coll_data$classe, p=0.6, list=FALSE) #Generate Random Vector
+train_data <- coll_data[ train_data_vector,] # Train Partition
+test_plus_vali_data <- coll_data[ -train_data_vector,] 
+3.2 Create Testing Dataset
 
-set.seed(107) train_data_vector <- createDataPartition(y = coll_data$classe, p=0.6, list=FALSE) #Generate Random Vector train_data <- coll_data[ train_data_vector,] # Train Partition test_plus_vali_data <- coll_data[ -train_data_vector,]
+testing_plus_validation <- createDataPartition(y= test_plus_vali_data$classe, p=0.5, list=FALSE) #Outcome for training dataset
+test_data <- test_plus_vali_data[testing_plus_validation,] # Test partition
+3.3 Create Validation Dataset
 
-3.2 Create Testing Dataset testing_plus_validation <- createDataPartition(y= test_plus_vali_data$classe, p=0.5, list=FALSE) #Outcome for training dataset test_data <- test_plus_vali_data[testing_plus_validation,] # Test partition
+vali_data <- test_plus_vali_data[-testing_plus_validation,] # Vali Partition
+3.4 Obtain “True” Output vectors #Obtaion Outputs for Training/Testing/Validation datasets
 
-3.3 Create Validation Dataset vali_data <- test_plus_vali_data[-testing_plus_validation,] # Vali Partition
-
-3.4 Obtain “True” Output vectors #Obtaion Outputs for Training/Testing/Validation datasets training_outcome <- train_dataclasse #Outcome for training dataset testing_outcome <- test_dataclasse #Outcome for testing dataset validation_outcome <- vali_data$classe #Outcome for validation dataset
-
+training_outcome <- train_data$classe #Outcome for training dataset
+testing_outcome <- test_data$classe #Outcome for testing dataset
+validation_outcome <- vali_data$classe #Outcome for validation dataset
 Construct Predictive Models
 
-1 Naive Model #Create a Naive Prediction Vector o <- rep(c(“A”,“B”,“C”,“D”,“E”), 3923*c(0.2,0.2,0.2,0.2,0.2)) p <- rep(c(“A”,“B”,“C”)) op <- rep(c(o,p)) naive_outcome <- sample(op)
+1 Naive Model #Create a Naive Prediction Vector
 
-2 Classification Model #Creation of Model class_numb <- match(“classe”,names(train_data)) predictors <- train_data[,-class_numb] #modelFit_rf <- train(predictors, training_outcome, method=“rf”) modelFit <- train(predictors, training_outcome, method=“rf”)
+o <- rep(c("A","B","C","D","E"), 3923*c(0.2,0.2,0.2,0.2,0.2))
+p <- rep(c("A","B","C"))
+op <- rep(c(o,p))
+naive_outcome <- sample(op)
+4.2 Classification Model #Creation of Model
 
-Model Evaluation #Performing a prediction with the model prediction_on_test <- predict(modelFit, newdata=test_data[,-class_numb]) prediction_on_vali <- predict(modelFit, newdata=vali_data[,-class_numb]) #Compare the predicted vs real values confusionMatrix(prediction_on_test, testing_outcome) confusionMatrix(prediction_on_vali, validation_outcome) confusionMatrix(naive_outcome, testing_outcome)
+class_numb <- match("classe",names(train_data))
+predictors <- train_data[,-class_numb]
+#modelFit_rf <- train(predictors, training_outcome, method="rf")
+modelFit <- train(predictors, training_outcome, method="treebag")
+## Loading required package: ipred
+## Loading required package: plyr
+Model Evaluation
+#Performing a prediction with the model
+prediction_on_test <- predict(modelFit, newdata=test_data[,-class_numb])
+prediction_on_vali <- predict(modelFit, newdata=vali_data[,-class_numb])
+#Compare the predicted vs real values
+confusionMatrix(prediction_on_test, testing_outcome)
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1107    5    1    0    0
+##          B    7  748   13    3    2
+##          C    2    3  664    9    4
+##          D    0    2    6  629    2
+##          E    0    1    0    2  713
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9842          
+##                  95% CI : (0.9798, 0.9879)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc > NIR] : < 2.2e-16       
+##                                           
+##                   Kappa : 0.98            
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9919   0.9855   0.9708   0.9782   0.9889
+## Specificity            0.9979   0.9921   0.9944   0.9970   0.9991
+## Pos Pred Value         0.9946   0.9677   0.9736   0.9844   0.9958
+## Neg Pred Value         0.9968   0.9965   0.9938   0.9957   0.9975
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2822   0.1907   0.1693   0.1603   0.1817
+## Detection Prevalence   0.2837   0.1970   0.1738   0.1629   0.1825
+## Balanced Accuracy      0.9949   0.9888   0.9826   0.9876   0.9940
+confusionMatrix(prediction_on_vali, validation_outcome)
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1108   11    2    1    0
+##          B    4  741    8    6    2
+##          C    1    5  670   11    2
+##          D    0    1    3  625    1
+##          E    3    1    1    0  716
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9839          
+##                  95% CI : (0.9795, 0.9876)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc > NIR] : < 2e-16         
+##                                           
+##                   Kappa : 0.9797          
+##  Mcnemar's Test P-Value : 0.05327         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9928   0.9763   0.9795   0.9720   0.9931
+## Specificity            0.9950   0.9937   0.9941   0.9985   0.9984
+## Pos Pred Value         0.9875   0.9737   0.9724   0.9921   0.9931
+## Neg Pred Value         0.9971   0.9943   0.9957   0.9945   0.9984
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2824   0.1889   0.1708   0.1593   0.1825
+## Detection Prevalence   0.2860   0.1940   0.1756   0.1606   0.1838
+## Balanced Accuracy      0.9939   0.9850   0.9868   0.9852   0.9958
+confusionMatrix(naive_outcome, testing_outcome)
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction   A   B   C   D   E
+##          A 225 153 144 117 146
+##          B 217 161 146 124 137
+##          C 220 161 137 138 129
+##          D 226 137 127 135 159
+##          E 228 147 130 129 150
+## 
+## Overall Statistics
+##                                          
+##                Accuracy : 0.206          
+##                  95% CI : (0.1934, 0.219)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc > NIR] : 1              
+##                                          
+##                   Kappa : 0.0074         
+##  Mcnemar's Test P-Value : 5.528e-14      
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity           0.20161  0.21212  0.20029  0.20995  0.20804
+## Specificity           0.80050  0.80278  0.79994  0.80213  0.80200
+## Pos Pred Value        0.28662  0.20510  0.17452  0.17219  0.19133
+## Neg Pred Value        0.71606  0.80943  0.82569  0.83817  0.81809
+## Prevalence            0.28448  0.19347  0.17436  0.16391  0.18379
+## Detection Rate        0.05735  0.04104  0.03492  0.03441  0.03824
+## Detection Prevalence  0.20010  0.20010  0.20010  0.19985  0.19985
+## Balanced Accuracy     0.50106  0.50745  0.50012  0.50604  0.50502
+Apply Model on Real Data
+prediction_on_real <- predict(modelFit, newdata=real_data)
+prediction_on_real
+##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E
